@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import webpush from "web-push";
+import { webpush } from "@/lib/push";
+import { WebPushError } from "web-push";
 import { db } from "@/lib/db";
 import { tasks, pushSubscriptions } from "@/lib/db/schema";
-import { env } from "@/lib/env";
-import { and, eq, lt, isNull, or } from "drizzle-orm";
+import { and, eq, lte, isNull, isNotNull, or } from "drizzle-orm";
 import { startOfDay, endOfDay, format } from "date-fns";
 
-webpush.setVapidDetails(
-  "mailto:ravi@tasks.app",
-  env.vapidPublicKey,
-  env.vapidPrivateKey,
-);
-
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  // Verify the request is from Vercel Cron (or allow in dev)
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env["CRON_SECRET"];
+
+  // Always require CRON_SECRET in production
+  if (!cronSecret && process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: "CRON_SECRET not configured" },
+      { status: 500 },
+    );
+  }
 
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,34 +26,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const todayStart = startOfDay(now);
   const todayEnd = endOfDay(now);
 
-  // Find tasks due today (not archived, not done/cancelled)
-  const dueToday = await db
+  // Fetch only active tasks with a due date that is today or earlier
+  const activeTasks = await db
     .select()
     .from(tasks)
     .where(
       and(
         isNull(tasks.archivedAt),
         or(eq(tasks.status, "todo"), eq(tasks.status, "in_progress")),
-        // dueAt falls within today
-        and(
-          isNull(tasks.archivedAt),
-          // gte equivalent: dueAt >= todayStart
-          // We need to check dueAt is not null and within today
-        ),
+        isNotNull(tasks.dueAt),
+        lte(tasks.dueAt, todayEnd),
       ),
     );
 
-  // Filter in JS for date range (drizzle's date comparison is cleaner this way)
-  const dueTodayTasks = dueToday.filter((t) => {
-    if (!t.dueAt) return false;
-    return t.dueAt >= todayStart && t.dueAt <= todayEnd;
-  });
-
-  // Find overdue tasks (due before today, still active)
-  const overdueTasks = dueToday.filter((t) => {
-    if (!t.dueAt) return false;
-    return t.dueAt < todayStart;
-  });
+  const dueTodayTasks = activeTasks.filter(
+    (t) => t.dueAt! >= todayStart && t.dueAt! <= todayEnd,
+  );
+  const overdueTasks = activeTasks.filter((t) => t.dueAt! < todayStart);
 
   // Build notification message
   const parts: string[] = [];
@@ -75,7 +65,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // Nothing to notify about
   if (parts.length === 0) {
     return NextResponse.json({
       sent: 0,
@@ -89,31 +78,34 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     url: "/",
   });
 
-  // Get all subscriptions and send
+  // Send to all subscribers in parallel
   const subscriptions = await db.select().from(pushSubscriptions);
-  let sent = 0;
-  const staleEndpoints: string[] = [];
-
-  for (const sub of subscriptions) {
-    try {
-      await webpush.sendNotification(
+  const results = await Promise.allSettled(
+    subscriptions.map((sub) =>
+      webpush.sendNotification(
         {
           endpoint: sub.endpoint,
           keys: { p256dh: sub.p256dh, auth: sub.auth },
         },
         payload,
-      );
+      ),
+    ),
+  );
+
+  // Collect stale endpoints for cleanup
+  const staleEndpoints: string[] = [];
+  let sent = 0;
+
+  results.forEach((result, index) => {
+    if (result.status === "fulfilled") {
       sent++;
-    } catch (err: unknown) {
-      // Remove expired/unsubscribed subscriptions
-      if (
-        err instanceof webpush.WebPushError &&
-        (err.statusCode === 404 || err.statusCode === 410)
-      ) {
-        staleEndpoints.push(sub.endpoint);
-      }
+    } else if (
+      result.reason instanceof WebPushError &&
+      (result.reason.statusCode === 404 || result.reason.statusCode === 410)
+    ) {
+      staleEndpoints.push(subscriptions[index].endpoint);
     }
-  }
+  });
 
   // Clean up stale subscriptions
   for (const endpoint of staleEndpoints) {

@@ -4,7 +4,14 @@ import { db } from "@/lib/db";
 import { tasks } from "@/lib/db/schema";
 import { eq, inArray, desc, and, or, lt, isNull, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import type { TaskStatus, TaskPriority, TaskLabel } from "@/lib/types";
+import {
+  TASK_STATUSES,
+  TASK_PRIORITIES,
+  TASK_LABELS,
+  type TaskStatus,
+  type TaskPriority,
+  type TaskLabel,
+} from "@/lib/types";
 
 const ARCHIVE_AFTER_MS: number = 1 * 24 * 60 * 60 * 1000; // 1 day
 
@@ -87,9 +94,15 @@ export async function createTask(
       typeof description === "string" && description.trim().length > 0
         ? description.trim()
         : null,
-    status: (status as TaskStatus) || "todo",
-    priority: (priority as TaskPriority) || "medium",
-    label: (label as TaskLabel) || "personal",
+    status: TASK_STATUSES.includes(status as TaskStatus)
+      ? (status as TaskStatus)
+      : "todo",
+    priority: TASK_PRIORITIES.includes(priority as TaskPriority)
+      ? (priority as TaskPriority)
+      : "medium",
+    label: TASK_LABELS.includes(label as TaskLabel)
+      ? (label as TaskLabel)
+      : "personal",
     dueAt: typeof dueAt === "string" && dueAt.length > 0 ? new Date(dueAt) : null,
   });
 
