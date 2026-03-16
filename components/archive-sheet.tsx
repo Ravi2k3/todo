@@ -75,7 +75,7 @@ export function ArchiveSheet({
             </SheetDescription>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto -mx-6 px-6">
+          <div className="flex-1 overflow-y-auto px-4">
             {tasks.length > 0 ? (
               <div className="divide-y divide-border">
                 {tasks.map((task) => (

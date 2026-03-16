@@ -31,7 +31,7 @@ export default async function TasksPage() {
 
   return (
     <PageTransition>
-      <div className="min-h-dvh px-4 py-6 sm:px-6 lg:px-10">
+      <div className="px-4 py-6 sm:px-6 lg:px-10">
         <Header tasks={tasks} archivedTasks={archivedTasks} />
         <div className="mt-6">
           <div className="hidden md:block">

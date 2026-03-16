@@ -16,7 +16,6 @@ import {
 import {
   subscribePush,
   unsubscribePush,
-  sendTestNotification,
 } from "@/lib/actions/notifications";
 import { toast } from "sonner";
 
@@ -40,7 +39,6 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
 
 export function NotificationToggle() {
   const [state, setState] = useState<NotificationState>("loading");
-  const [currentEndpoint, setCurrentEndpoint] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const checkSubscription = useCallback(async (): Promise<void> => {
@@ -60,10 +58,8 @@ export function NotificationToggle() {
 
       if (subscription) {
         setState("subscribed");
-        setCurrentEndpoint(subscription.endpoint);
       } else {
         setState("unsubscribed");
-        setCurrentEndpoint(null);
       }
     } catch {
       setState("unsubscribed");
@@ -100,7 +96,6 @@ export function NotificationToggle() {
         });
 
         setState("subscribed");
-        setCurrentEndpoint(json.endpoint!);
         toast.success("Notifications enabled");
       } catch (err: unknown) {
         const message =
@@ -122,24 +117,11 @@ export function NotificationToggle() {
         }
 
         setState("unsubscribed");
-        setCurrentEndpoint(null);
         toast.success("Notifications disabled");
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : "Failed to unsubscribe";
         toast.error(message);
-      }
-    });
-  }
-
-  function handleTest(): void {
-    if (!currentEndpoint) return;
-    startTransition(async () => {
-      const result = await sendTestNotification(currentEndpoint);
-      if (result.success) {
-        toast.success("Test notification sent");
-      } else {
-        toast.error(result.error ?? "Failed to send test notification");
       }
     });
   }
@@ -190,31 +172,20 @@ export function NotificationToggle() {
               Blocked by browser
             </Button>
           ) : state === "subscribed" ? (
-            <div className="space-y-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={handleTest}
-                disabled={isPending}
-              >
-                {isPending ? (
-                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <BellRing className="mr-2 h-3.5 w-3.5" />
-                )}
-                Send test notification
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full text-muted-foreground"
-                onClick={handleUnsubscribe}
-                disabled={isPending}
-              >
-                Disable notifications
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={handleUnsubscribe}
+              disabled={isPending}
+            >
+              {isPending ? (
+                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <BellOff className="mr-2 h-3.5 w-3.5" />
+              )}
+              Disable notifications
+            </Button>
           ) : (
             <Button
               size="sm"
