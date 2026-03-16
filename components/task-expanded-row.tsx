@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format, formatDistanceToNow, isPast, isToday } from "date-fns";
-import { CalendarIcon, Trash2 } from "lucide-react";
+import { Archive, CalendarIcon, Trash2 } from "lucide-react";
 import type { Task, TaskStatus, TaskPriority } from "@/lib/types";
 import {
   TASK_STATUSES,
@@ -30,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { updateTask, deleteTask } from "@/lib/actions/tasks";
+import { updateTask, deleteTask, archiveTask } from "@/lib/actions/tasks";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +51,11 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
   async function handlePriorityChange(priority: TaskPriority): Promise<void> {
     await updateTask(task.id, { priority });
     toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
+  }
+
+  async function handleArchive(): Promise<void> {
+    await archiveTask(task.id);
+    toast.success("Task archived");
   }
 
   async function handleDelete(): Promise<void> {
@@ -166,15 +171,26 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
               </Select>
             </div>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-1 h-7 w-fit text-destructive hover:text-destructive"
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              <Trash2 className="mr-1 h-3.5 w-3.5" />
-              Delete
-            </Button>
+            <div className="mt-1 flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-fit"
+                onClick={handleArchive}
+              >
+                <Archive className="mr-1 h-3.5 w-3.5" />
+                Archive
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-fit text-destructive hover:text-destructive"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                Delete
+              </Button>
+            </div>
           </div>
         </div>
       </div>

@@ -42,8 +42,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Trash2, CalendarIcon, ClipboardList, Tag } from "lucide-react";
-import { updateTask, deleteTask } from "@/lib/actions/tasks";
+import { Trash2, CalendarIcon, ClipboardList, Tag, Archive } from "lucide-react";
+import { updateTask, deleteTask, archiveTask } from "@/lib/actions/tasks";
 import { toast } from "sonner";
 
 type FilterTab = "all" | "active" | "done";
@@ -216,7 +216,7 @@ export function TaskMobileList({ tasks }: TaskMobileListProps) {
             <MobileTaskDetail
               task={selectedTask}
               onUpdate={(updated) => setSelectedTask(updated)}
-              onDelete={() => setSelectedTask(null)}
+              onClose={() => setSelectedTask(null)}
             />
           )}
         </DrawerContent>
@@ -228,13 +228,13 @@ export function TaskMobileList({ tasks }: TaskMobileListProps) {
 interface MobileTaskDetailProps {
   task: Task;
   onUpdate: (task: Task) => void;
-  onDelete: () => void;
+  onClose: () => void;
 }
 
 function MobileTaskDetail({
   task,
   onUpdate,
-  onDelete,
+  onClose,
 }: MobileTaskDetailProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
@@ -251,11 +251,17 @@ function MobileTaskDetail({
     toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
   }
 
+  async function handleArchive(): Promise<void> {
+    await archiveTask(task.id);
+    onClose();
+    toast.success("Task archived");
+  }
+
   async function handleDelete(): Promise<void> {
     setIsDeleting(true);
     await deleteTask(task.id);
     setIsDeleting(false);
-    onDelete();
+    onClose();
     toast.success("Task deleted");
   }
 
@@ -362,14 +368,24 @@ function MobileTaskDetail({
       </div>
 
       <DrawerFooter>
-        <Button
-          variant="destructive"
-          className="h-11 w-full"
-          onClick={() => setDeleteDialogOpen(true)}
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Delete task
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="h-11 flex-1"
+            onClick={handleArchive}
+          >
+            <Archive className="mr-2 h-4 w-4" />
+            Archive
+          </Button>
+          <Button
+            variant="destructive"
+            className="h-11 flex-1"
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
+          </Button>
+        </div>
         <DrawerClose asChild>
           <Button variant="outline" className="h-11 w-full">
             Close

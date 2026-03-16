@@ -26,4 +26,5 @@ export const tasks = pgTable("tasks", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
 });

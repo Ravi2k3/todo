@@ -28,6 +28,7 @@ export interface Task {
   dueAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  archivedAt: Date | null;
 }
 
 export const STATUS_CONFIG: Record<

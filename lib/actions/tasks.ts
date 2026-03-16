@@ -2,14 +2,62 @@
 
 import { db } from "@/lib/db";
 import { tasks } from "@/lib/db/schema";
-import { eq, inArray, desc } from "drizzle-orm";
+import { eq, inArray, desc, and, or, lt, isNull, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { TaskStatus, TaskPriority, TaskLabel } from "@/lib/types";
+
+const ARCHIVE_AFTER_MS: number = 1 * 24 * 60 * 60 * 1000; // 1 day
+
+/** Soft-archive done/cancelled tasks that haven't been updated in 1 day. */
+async function archiveStaleTasks(): Promise<void> {
+  const cutoff: Date = new Date(Date.now() - ARCHIVE_AFTER_MS);
+  await db
+    .update(tasks)
+    .set({ archivedAt: new Date() })
+    .where(
+      and(
+        or(eq(tasks.status, "done"), eq(tasks.status, "cancelled")),
+        lt(tasks.updatedAt, cutoff),
+        isNull(tasks.archivedAt),
+      ),
+    );
+}
 
 export async function getTasks(): Promise<
   (typeof tasks.$inferSelect)[]
 > {
-  return db.select().from(tasks).orderBy(desc(tasks.createdAt));
+  await archiveStaleTasks();
+  return db
+    .select()
+    .from(tasks)
+    .where(isNull(tasks.archivedAt))
+    .orderBy(desc(tasks.createdAt));
+}
+
+export async function getArchivedTasks(): Promise<
+  (typeof tasks.$inferSelect)[]
+> {
+  return db
+    .select()
+    .from(tasks)
+    .where(isNotNull(tasks.archivedAt))
+    .orderBy(desc(tasks.archivedAt));
+}
+
+export async function archiveTask(id: number): Promise<void> {
+  await db
+    .update(tasks)
+    .set({ archivedAt: new Date() })
+    .where(eq(tasks.id, id));
+  revalidatePath("/");
+}
+
+export async function restoreTask(id: number): Promise<void> {
+  await db
+    .update(tasks)
+    .set({ archivedAt: null, status: "todo", updatedAt: new Date() })
+    .where(eq(tasks.id, id));
+  revalidatePath("/");
 }
 
 export interface CreateTaskState {
