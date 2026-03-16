@@ -16,4 +16,10 @@ export const env = {
   get sessionSecret(): string {
     return getRequiredEnv("SESSION_SECRET");
   },
+  get vapidPublicKey(): string {
+    return getRequiredEnv("NEXT_PUBLIC_VAPID_PUBLIC_KEY");
+  },
+  get vapidPrivateKey(): string {
+    return getRequiredEnv("VAPID_PRIVATE_KEY");
+  },
 } as const;

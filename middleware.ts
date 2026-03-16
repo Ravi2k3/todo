@@ -7,8 +7,8 @@ const SESSION_COOKIE_NAME = "todo-session";
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  // Allow the login page through
-  if (pathname === "/login") {
+  // Allow public routes through
+  if (pathname === "/login" || pathname.startsWith("/api/cron/")) {
     return NextResponse.next();
   }
 

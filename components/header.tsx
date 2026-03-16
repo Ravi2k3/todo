@@ -13,6 +13,7 @@ import {
 import { TaskCreateDialog } from "@/components/task-create-dialog";
 import { CommandMenu } from "@/components/command-menu";
 import { ArchiveSheet } from "@/components/archive-sheet";
+import { NotificationToggle } from "@/components/notification-toggle";
 import { logout } from "@/lib/auth/actions";
 import type { Task } from "@/lib/types";
 
@@ -76,6 +77,8 @@ export function Header({ tasks, archivedTasks }: HeaderProps) {
             </TooltipTrigger>
             <TooltipContent>Archived tasks</TooltipContent>
           </Tooltip>
+
+          <NotificationToggle />
 
           <Tooltip>
             <TooltipTrigger asChild>
