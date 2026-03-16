@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ListTodo, SquarePen } from "lucide-react";
+import { ListTodo, SquarePen, Archive } from "lucide-react";
 import { TaskMobileList } from "@/components/task-mobile-list";
 import { TaskCreateMobile } from "@/components/task-create-mobile";
+import { ArchiveSheet } from "@/components/archive-sheet";
 import type { Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -11,10 +12,15 @@ type MobileView = "tasks" | "create";
 
 interface TaskMobileLayoutProps {
   tasks: Task[];
+  archivedTasks: Task[];
 }
 
-export function TaskMobileLayout({ tasks }: TaskMobileLayoutProps) {
+export function TaskMobileLayout({
+  tasks,
+  archivedTasks,
+}: TaskMobileLayoutProps) {
   const [activeView, setActiveView] = useState<MobileView>("tasks");
+  const [archiveOpen, setArchiveOpen] = useState<boolean>(false);
 
   return (
     <>
@@ -59,8 +65,27 @@ export function TaskMobileLayout({ tasks }: TaskMobileLayoutProps) {
             <SquarePen className="h-5 w-5" />
             New Task
           </button>
+          <button
+            type="button"
+            onClick={() => setArchiveOpen(true)}
+            className="relative flex flex-1 flex-col items-center gap-0.5 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors"
+          >
+            <Archive className="h-5 w-5" />
+            Archive
+            {archivedTasks.length > 0 && (
+              <span className="absolute right-1/4 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-semibold text-primary-foreground">
+                {archivedTasks.length}
+              </span>
+            )}
+          </button>
         </div>
       </nav>
+
+      <ArchiveSheet
+        tasks={archivedTasks}
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+      />
     </>
   );
 }

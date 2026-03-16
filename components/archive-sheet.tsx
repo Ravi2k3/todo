@@ -9,10 +9,8 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -21,20 +19,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { restoreTask, deleteTask } from "@/lib/actions/tasks";
 import { toast } from "sonner";
 import type { Task } from "@/lib/types";
 
 interface ArchiveSheetProps {
   tasks: Task[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function ArchiveSheet({ tasks }: ArchiveSheetProps) {
+export function ArchiveSheet({
+  tasks,
+  open,
+  onOpenChange,
+}: ArchiveSheetProps) {
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [restoringId, setRestoringId] = useState<number | null>(null);
@@ -62,31 +61,7 @@ export function ArchiveSheet({ tasks }: ArchiveSheetProps) {
 
   return (
     <>
-      <Sheet>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative h-8 w-8"
-              >
-                <Archive className="h-4 w-4" />
-                {tasks.length > 0 && (
-                  <Badge
-                    variant="secondary"
-                    className="absolute -right-1.5 -top-1.5 h-4 min-w-4 justify-center px-1 text-[10px] leading-none"
-                  >
-                    {tasks.length}
-                  </Badge>
-                )}
-                <span className="sr-only">Archived tasks</span>
-              </Button>
-            </SheetTrigger>
-          </TooltipTrigger>
-          <TooltipContent>Archived tasks</TooltipContent>
-        </Tooltip>
-
+      <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="flex flex-col sm:max-w-sm">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, LogOut, Sun, Moon } from "lucide-react";
+import { Plus, LogOut, Sun, Moon, Archive } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
@@ -22,6 +23,7 @@ interface HeaderProps {
 
 export function Header({ tasks, archivedTasks }: HeaderProps) {
   const [createOpen, setCreateOpen] = useState<boolean>(false);
+  const [archiveOpen, setArchiveOpen] = useState<boolean>(false);
   const { resolvedTheme, setTheme } = useTheme();
 
   return (
@@ -52,7 +54,28 @@ export function Header({ tasks, archivedTasks }: HeaderProps) {
             <TooltipContent>Toggle theme</TooltipContent>
           </Tooltip>
 
-          <ArchiveSheet tasks={archivedTasks} />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative hidden h-8 w-8 md:inline-flex"
+                onClick={() => setArchiveOpen(true)}
+              >
+                <Archive className="h-4 w-4" />
+                {archivedTasks.length > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="absolute -right-1.5 -top-1.5 h-4 min-w-4 justify-center px-1 text-[10px] leading-none"
+                  >
+                    {archivedTasks.length}
+                  </Badge>
+                )}
+                <span className="sr-only">Archived tasks</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Archived tasks</TooltipContent>
+          </Tooltip>
 
           <Tooltip>
             <TooltipTrigger asChild>
@@ -85,6 +108,11 @@ export function Header({ tasks, archivedTasks }: HeaderProps) {
 
       <TaskCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
       <CommandMenu tasks={tasks} onCreateNew={() => setCreateOpen(true)} />
+      <ArchiveSheet
+        tasks={archivedTasks}
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+      />
     </>
   );
 }

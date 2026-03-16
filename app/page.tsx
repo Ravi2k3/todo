@@ -38,7 +38,10 @@ export default async function TasksPage() {
             <TaskTable tasks={tasks} />
           </div>
           <div className="md:hidden">
-            <TaskMobileLayout tasks={tasks} />
+            <TaskMobileLayout
+              tasks={tasks}
+              archivedTasks={archivedTasks}
+            />
           </div>
         </div>
       </div>
