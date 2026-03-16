@@ -18,7 +18,15 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import {
   Select,
   SelectContent,
@@ -34,8 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
-import { Trash2, CalendarIcon, ClipboardList } from "lucide-react";
+import { Trash2, CalendarIcon, ClipboardList, Tag } from "lucide-react";
 import { updateTask, deleteTask } from "@/lib/actions/tasks";
 import { toast } from "sonner";
 
@@ -198,19 +205,13 @@ export function TaskMobileList({ tasks }: TaskMobileListProps) {
         )}
       </div>
 
-      <Sheet
+      <Drawer
         open={selectedTask !== null}
         onOpenChange={(open) => {
           if (!open) setSelectedTask(null);
         }}
       >
-        <SheetContent
-          side="bottom"
-          className="max-h-[85dvh] overflow-y-auto rounded-t-2xl px-5 pb-8 pt-3"
-          showCloseButton={false}
-        >
-          {/* Drag handle */}
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-muted-foreground/30" />
+        <DrawerContent>
           {selectedTask && (
             <MobileTaskDetail
               task={selectedTask}
@@ -218,8 +219,8 @@ export function TaskMobileList({ tasks }: TaskMobileListProps) {
               onDelete={() => setSelectedTask(null)}
             />
           )}
-        </SheetContent>
-      </Sheet>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
@@ -264,112 +265,117 @@ function MobileTaskDetail({
   const dueToday = task.dueAt && isToday(task.dueAt) && !isDone;
 
   return (
-    <>
-      {/* Title + description */}
-      <div className="space-y-1.5">
-        <h2 className="pr-2 text-base font-semibold leading-snug">
-          {task.title}
-        </h2>
-        {task.description && (
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            {task.description}
-          </p>
+    <div className="mx-auto w-full max-w-sm">
+      <DrawerHeader className="text-left">
+        <DrawerTitle className="text-lg">{task.title}</DrawerTitle>
+        {task.description ? (
+          <DrawerDescription>{task.description}</DrawerDescription>
+        ) : (
+          <DrawerDescription className="sr-only">
+            Task details
+          </DrawerDescription>
         )}
-      </div>
+      </DrawerHeader>
 
-      {/* Metadata badges */}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Badge variant="outline">{LABEL_CONFIG[task.label].label}</Badge>
-        {task.dueAt && (
-          <Badge
-            variant="outline"
-            className={cn(
-              "gap-1",
-              overdue && "border-red-500/40 text-red-500",
-              dueToday && "border-amber-500/40 text-amber-500",
-            )}
-          >
-            <CalendarIcon className="h-3 w-3" />
-            {format(task.dueAt, "MMM d, yyyy")}
+      <div className="space-y-3 px-4">
+        {/* Info row — label, due date, created */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="gap-1">
+            <Tag className="h-3 w-3" />
+            {LABEL_CONFIG[task.label].label}
           </Badge>
-        )}
-        <span className="text-[11px] text-muted-foreground">
-          Created {formatDistanceToNow(task.createdAt, { addSuffix: true })}
-        </span>
+          {task.dueAt && (
+            <Badge
+              variant="outline"
+              className={cn(
+                "gap-1",
+                overdue && "border-red-500/40 text-red-500",
+                dueToday && "border-amber-500/40 text-amber-500",
+              )}
+            >
+              <CalendarIcon className="h-3 w-3" />
+              {format(task.dueAt, "MMM d, yyyy")}
+            </Badge>
+          )}
+          <span className="text-[11px] text-muted-foreground">
+            {formatDistanceToNow(task.createdAt, { addSuffix: true })}
+          </span>
+        </div>
+
+        {/* Status */}
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Status</p>
+          <Select
+            value={task.status}
+            onValueChange={(v) => handleStatusChange(v as TaskStatus)}
+          >
+            <SelectTrigger className="h-11 w-full">
+              <div className="flex items-center gap-2">
+                <TaskStatusIcon
+                  status={task.status}
+                  className="h-4 w-4"
+                />
+                <SelectValue />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {TASK_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  <div className="flex items-center gap-2">
+                    <TaskStatusIcon status={s} className="h-4 w-4" />
+                    {STATUS_CONFIG[s].label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Priority */}
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Priority</p>
+          <Select
+            value={task.priority}
+            onValueChange={(v) => handlePriorityChange(v as TaskPriority)}
+          >
+            <SelectTrigger className="h-11 w-full">
+              <div className="flex items-center gap-2">
+                <TaskPriorityIcon
+                  priority={task.priority}
+                  className="h-4 w-4"
+                />
+                <SelectValue />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {TASK_PRIORITIES.map((p) => (
+                <SelectItem key={p} value={p}>
+                  <div className="flex items-center gap-2">
+                    <TaskPriorityIcon priority={p} className="h-4 w-4" />
+                    {PRIORITY_CONFIG[p].label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <Separator className="my-4" />
-
-      {/* Status — full width */}
-      <div className="space-y-1.5">
-        <p className="text-xs font-medium text-muted-foreground">Status</p>
-        <Select
-          value={task.status}
-          onValueChange={(v) => handleStatusChange(v as TaskStatus)}
+      <DrawerFooter>
+        <Button
+          variant="destructive"
+          className="h-11 w-full"
+          onClick={() => setDeleteDialogOpen(true)}
         >
-          <SelectTrigger className="h-11 w-full">
-            <div className="flex items-center gap-2">
-              <TaskStatusIcon
-                status={task.status}
-                className="h-4 w-4"
-              />
-              <SelectValue />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            {TASK_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                <div className="flex items-center gap-2">
-                  <TaskStatusIcon status={s} className="h-4 w-4" />
-                  {STATUS_CONFIG[s].label}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Priority — full width */}
-      <div className="mt-3 space-y-1.5">
-        <p className="text-xs font-medium text-muted-foreground">Priority</p>
-        <Select
-          value={task.priority}
-          onValueChange={(v) => handlePriorityChange(v as TaskPriority)}
-        >
-          <SelectTrigger className="h-11 w-full">
-            <div className="flex items-center gap-2">
-              <TaskPriorityIcon
-                priority={task.priority}
-                className="h-4 w-4"
-              />
-              <SelectValue />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            {TASK_PRIORITIES.map((p) => (
-              <SelectItem key={p} value={p}>
-                <div className="flex items-center gap-2">
-                  <TaskPriorityIcon priority={p} className="h-4 w-4" />
-                  {PRIORITY_CONFIG[p].label}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <Separator className="my-4" />
-
-      {/* Delete */}
-      <Button
-        variant="destructive"
-        size="sm"
-        className="h-10 w-full"
-        onClick={() => setDeleteDialogOpen(true)}
-      >
-        <Trash2 className="mr-2 h-3.5 w-3.5" />
-        Delete task
-      </Button>
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete task
+        </Button>
+        <DrawerClose asChild>
+          <Button variant="outline" className="h-11 w-full">
+            Close
+          </Button>
+        </DrawerClose>
+      </DrawerFooter>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
@@ -397,6 +403,6 @@ function MobileTaskDetail({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
