@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow, format, isPast, isToday } from "date-fns";
 import type { Task, TaskStatus, TaskPriority } from "@/lib/types";
@@ -42,7 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Trash2, CalendarIcon, ClipboardList, Tag, Archive } from "lucide-react";
+import { Trash2, CalendarIcon, ClipboardList, Tag, Archive, Loader2 } from "lucide-react";
 import { updateTask, deleteTask, archiveTask } from "@/lib/actions/tasks";
 import { toast } from "sonner";
 
@@ -56,11 +56,17 @@ export function TaskMobileList({ tasks }: TaskMobileListProps) {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState<string>("");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [, startTransition] = useTransition();
 
-  async function handleQuickToggle(task: Task): Promise<void> {
+  function handleQuickToggle(task: Task): void {
     const newStatus = task.status === "done" ? "todo" : "done";
-    await updateTask(task.id, { status: newStatus });
-    toast.success(newStatus === "done" ? "Done!" : "Reopened");
+    setTogglingId(task.id);
+    startTransition(async () => {
+      await updateTask(task.id, { status: newStatus });
+      setTogglingId(null);
+      toast.success(newStatus === "done" ? "Done!" : "Reopened");
+    });
   }
 
   const filtered = tasks.filter((task) => {
@@ -168,8 +174,13 @@ export function TaskMobileList({ tasks }: TaskMobileListProps) {
                 type="button"
                 className="mt-0.5 rounded-sm p-0.5 transition-opacity active:opacity-60"
                 onClick={() => handleQuickToggle(task)}
+                disabled={togglingId === task.id}
               >
-                <TaskStatusIcon status={task.status} />
+                {togglingId === task.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <TaskStatusIcon status={task.status} />
+                )}
               </button>
               <button
                 type="button"
@@ -237,32 +248,43 @@ function MobileTaskDetail({
   onClose,
 }: MobileTaskDetailProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
-  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
 
-  async function handleStatusChange(status: TaskStatus): Promise<void> {
-    await updateTask(task.id, { status });
-    onUpdate({ ...task, status });
-    toast.success(`Status → ${STATUS_CONFIG[status].label}`);
+  function handleStatusChange(status: TaskStatus): void {
+    startTransition(async () => {
+      await updateTask(task.id, { status });
+      onUpdate({ ...task, status });
+      toast.success(`Status → ${STATUS_CONFIG[status].label}`);
+    });
   }
 
-  async function handlePriorityChange(priority: TaskPriority): Promise<void> {
-    await updateTask(task.id, { priority });
-    onUpdate({ ...task, priority });
-    toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
+  function handlePriorityChange(priority: TaskPriority): void {
+    startTransition(async () => {
+      await updateTask(task.id, { priority });
+      onUpdate({ ...task, priority });
+      toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
+    });
   }
 
-  async function handleArchive(): Promise<void> {
-    await archiveTask(task.id);
-    onClose();
-    toast.success("Task archived");
+  function handleArchive(): void {
+    setPendingAction("archive");
+    startTransition(async () => {
+      await archiveTask(task.id);
+      setPendingAction(null);
+      onClose();
+      toast.success("Task archived");
+    });
   }
 
-  async function handleDelete(): Promise<void> {
-    setIsDeleting(true);
-    await deleteTask(task.id);
-    setIsDeleting(false);
-    onClose();
-    toast.success("Task deleted");
+  function handleDelete(): void {
+    setPendingAction("delete");
+    startTransition(async () => {
+      await deleteTask(task.id);
+      setPendingAction(null);
+      onClose();
+      toast.success("Task deleted");
+    });
   }
 
   const isDone = task.status === "done" || task.status === "cancelled";
@@ -373,14 +395,20 @@ function MobileTaskDetail({
             variant="outline"
             className="h-11 flex-1"
             onClick={handleArchive}
+            disabled={pendingAction !== null}
           >
-            <Archive className="mr-2 h-4 w-4" />
+            {pendingAction === "archive" ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Archive className="mr-2 h-4 w-4" />
+            )}
             Archive
           </Button>
           <Button
             variant="destructive"
             className="h-11 flex-1"
             onClick={() => setDeleteDialogOpen(true)}
+            disabled={pendingAction !== null}
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Delete
@@ -412,9 +440,16 @@ function MobileTaskDetail({
             <Button
               variant="destructive"
               onClick={handleDelete}
-              disabled={isDeleting}
+              disabled={pendingAction === "delete"}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {pendingAction === "delete" ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting
+                </>
+              ) : (
+                "Delete"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

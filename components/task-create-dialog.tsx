@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useEffect, useState, useCallback } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, X } from "lucide-react";
+import { CalendarIcon, Loader2, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -226,7 +226,14 @@ export function TaskCreateDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Creating..." : "Create"}
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating
+                </>
+              ) : (
+                "Create"
+              )}
             </Button>
           </DialogFooter>
         </form>

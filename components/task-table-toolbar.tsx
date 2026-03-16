@@ -1,7 +1,8 @@
 "use client";
 
+import { useTransition } from "react";
 import type { Table } from "@tanstack/react-table";
-import { X, Circle, Timer, CheckCircle2, XCircle, ArrowDown, ArrowRight, ArrowUp, Trash2 } from "lucide-react";
+import { X, Circle, Timer, CheckCircle2, XCircle, ArrowDown, ArrowRight, ArrowUp, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TaskTableFacetedFilter } from "@/components/task-table-faceted-filter";
@@ -29,14 +30,17 @@ interface TaskTableToolbarProps {
 export function TaskTableToolbar({ table }: TaskTableToolbarProps) {
   const isFiltered = table.getState().columnFilters.length > 0;
   const selectedCount = table.getFilteredSelectedRowModel().rows.length;
+  const [isBulkDeleting, startTransition] = useTransition();
 
-  async function handleBulkDelete(): Promise<void> {
+  function handleBulkDelete(): void {
     const ids = table
       .getFilteredSelectedRowModel()
       .rows.map((row) => row.original.id);
-    await deleteTasks(ids);
-    table.toggleAllRowsSelected(false);
-    toast.success(`${ids.length} task(s) deleted`);
+    startTransition(async () => {
+      await deleteTasks(ids);
+      table.toggleAllRowsSelected(false);
+      toast.success(`${ids.length} task(s) deleted`);
+    });
   }
 
   return (
@@ -90,8 +94,13 @@ export function TaskTableToolbar({ table }: TaskTableToolbarProps) {
               size="sm"
               className="h-8"
               onClick={handleBulkDelete}
+              disabled={isBulkDeleting}
             >
-              <Trash2 className="mr-2 h-3.5 w-3.5" />
+              {isBulkDeleting ? (
+                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-3.5 w-3.5" />
+              )}
               Delete
             </Button>
           </>

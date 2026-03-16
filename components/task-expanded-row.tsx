@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { format, formatDistanceToNow, isPast, isToday } from "date-fns";
-import { Archive, CalendarIcon, Trash2 } from "lucide-react";
+import { Archive, CalendarIcon, Loader2, Trash2 } from "lucide-react";
 import type { Task, TaskStatus, TaskPriority } from "@/lib/types";
 import {
   TASK_STATUSES,
@@ -41,29 +41,40 @@ interface TaskExpandedRowProps {
 
 export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
-  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
 
-  async function handleStatusChange(status: TaskStatus): Promise<void> {
-    await updateTask(task.id, { status });
-    toast.success(`Status → ${STATUS_CONFIG[status].label}`);
+  function handleStatusChange(status: TaskStatus): void {
+    startTransition(async () => {
+      await updateTask(task.id, { status });
+      toast.success(`Status → ${STATUS_CONFIG[status].label}`);
+    });
   }
 
-  async function handlePriorityChange(priority: TaskPriority): Promise<void> {
-    await updateTask(task.id, { priority });
-    toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
+  function handlePriorityChange(priority: TaskPriority): void {
+    startTransition(async () => {
+      await updateTask(task.id, { priority });
+      toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
+    });
   }
 
-  async function handleArchive(): Promise<void> {
-    await archiveTask(task.id);
-    toast.success("Task archived");
+  function handleArchive(): void {
+    setPendingAction("archive");
+    startTransition(async () => {
+      await archiveTask(task.id);
+      setPendingAction(null);
+      toast.success("Task archived");
+    });
   }
 
-  async function handleDelete(): Promise<void> {
-    setIsDeleting(true);
-    await deleteTask(task.id);
-    setDeleteDialogOpen(false);
-    setIsDeleting(false);
-    toast.success("Task deleted");
+  function handleDelete(): void {
+    setPendingAction("delete");
+    startTransition(async () => {
+      await deleteTask(task.id);
+      setDeleteDialogOpen(false);
+      setPendingAction(null);
+      toast.success("Task deleted");
+    });
   }
 
   const isDone = task.status === "done" || task.status === "cancelled";
@@ -177,8 +188,13 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
                 size="sm"
                 className="h-7 w-fit"
                 onClick={handleArchive}
+                disabled={pendingAction !== null}
               >
-                <Archive className="mr-1 h-3.5 w-3.5" />
+                {pendingAction === "archive" ? (
+                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Archive className="mr-1 h-3.5 w-3.5" />
+                )}
                 Archive
               </Button>
               <Button
@@ -186,6 +202,7 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
                 size="sm"
                 className="h-7 w-fit text-destructive hover:text-destructive"
                 onClick={() => setDeleteDialogOpen(true)}
+                disabled={pendingAction !== null}
               >
                 <Trash2 className="mr-1 h-3.5 w-3.5" />
                 Delete
@@ -214,9 +231,16 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
             <Button
               variant="destructive"
               onClick={handleDelete}
-              disabled={isDeleting}
+              disabled={pendingAction === "delete"}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {pendingAction === "delete" ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting
+                </>
+              ) : (
+                "Delete"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState, useCallback } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, X } from "lucide-react";
+import { CalendarIcon, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -246,7 +246,14 @@ export function TaskCreateMobile({ onCreated }: TaskCreateMobileProps) {
         className="h-12 w-full text-base"
         disabled={isPending}
       >
-        {isPending ? "Creating..." : "Create Task"}
+        {isPending ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Creating
+          </>
+        ) : (
+          "Create Task"
+        )}
       </Button>
     </form>
   );

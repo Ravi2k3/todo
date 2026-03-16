@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
@@ -40,6 +40,7 @@ export function CommandMenu({ tasks, onCreateNew }: CommandMenuProps) {
   const [open, setOpen] = useState<boolean>(false);
   const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent): void {
@@ -53,21 +54,25 @@ export function CommandMenu({ tasks, onCreateNew }: CommandMenuProps) {
   }, []);
 
   const handleStatusChange = useCallback(
-    async (taskId: number, status: TaskStatus): Promise<void> => {
-      await updateTask(taskId, { status });
+    (taskId: number, status: TaskStatus): void => {
       setOpen(false);
-      toast.success(`Status → ${STATUS_CONFIG[status].label}`);
+      startTransition(async () => {
+        await updateTask(taskId, { status });
+        toast.success(`Status → ${STATUS_CONFIG[status].label}`);
+      });
     },
-    [],
+    [startTransition],
   );
 
   const handlePriorityChange = useCallback(
-    async (taskId: number, priority: TaskPriority): Promise<void> => {
-      await updateTask(taskId, { priority });
+    (taskId: number, priority: TaskPriority): void => {
       setOpen(false);
-      toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
+      startTransition(async () => {
+        await updateTask(taskId, { priority });
+        toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
+      });
     },
-    [],
+    [startTransition],
   );
 
   // Active tasks for quick-complete
@@ -106,9 +111,11 @@ export function CommandMenu({ tasks, onCreateNew }: CommandMenuProps) {
             Toggle theme
           </CommandItem>
           <CommandItem
-            onSelect={async () => {
+            onSelect={() => {
               setOpen(false);
-              await logout();
+              startTransition(async () => {
+                await logout();
+              });
             }}
           >
             <LogOut className="mr-2 h-4 w-4" />

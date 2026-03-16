@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Archive, Trash2, RotateCcw } from "lucide-react";
+import { Archive, Loader2, Trash2, RotateCcw } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -30,19 +30,27 @@ export function ArchivedTasks({ tasks }: ArchivedTasksProps) {
   const [open, setOpen] = useState<boolean>(false);
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [restoringId, setRestoringId] = useState<number | null>(null);
+  const [, startTransition] = useTransition();
 
-  async function handleRestore(task: Task): Promise<void> {
-    await restoreTask(task.id);
-    toast.success(`"${task.title}" restored`);
+  function handleRestore(task: Task): void {
+    setRestoringId(task.id);
+    startTransition(async () => {
+      await restoreTask(task.id);
+      setRestoringId(null);
+      toast.success(`"${task.title}" restored`);
+    });
   }
 
-  async function handleDelete(): Promise<void> {
+  function handleDelete(): void {
     if (!deleteTarget) return;
     setIsDeleting(true);
-    await deleteTask(deleteTarget.id);
-    setIsDeleting(false);
-    setDeleteTarget(null);
-    toast.success("Task permanently deleted");
+    startTransition(async () => {
+      await deleteTask(deleteTarget.id);
+      setIsDeleting(false);
+      setDeleteTarget(null);
+      toast.success("Task permanently deleted");
+    });
   }
 
   return (
@@ -99,8 +107,13 @@ export function ArchivedTasks({ tasks }: ArchivedTasksProps) {
                       size="icon"
                       className="h-7 w-7 text-muted-foreground hover:text-foreground"
                       onClick={() => handleRestore(task)}
+                      disabled={restoringId === task.id}
                     >
-                      <RotateCcw className="h-3.5 w-3.5" />
+                      {restoringId === task.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      )}
                       <span className="sr-only">Restore</span>
                     </Button>
                     <Button
@@ -143,7 +156,14 @@ export function ArchivedTasks({ tasks }: ArchivedTasksProps) {
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting
+                </>
+              ) : (
+                "Delete"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

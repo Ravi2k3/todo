@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Loader2, MoreHorizontal, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -35,23 +35,30 @@ interface TaskRowActionsProps {
 export function TaskRowActions({ task }: TaskRowActionsProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [, startTransition] = useTransition();
 
-  async function handleStatusChange(status: TaskStatus): Promise<void> {
-    await updateTask(task.id, { status });
-    toast.success(`Status changed to ${STATUS_CONFIG[status].label}`);
+  function handleStatusChange(status: TaskStatus): void {
+    startTransition(async () => {
+      await updateTask(task.id, { status });
+      toast.success(`Status changed to ${STATUS_CONFIG[status].label}`);
+    });
   }
 
-  async function handlePriorityChange(priority: TaskPriority): Promise<void> {
-    await updateTask(task.id, { priority });
-    toast.success(`Priority changed to ${PRIORITY_CONFIG[priority].label}`);
+  function handlePriorityChange(priority: TaskPriority): void {
+    startTransition(async () => {
+      await updateTask(task.id, { priority });
+      toast.success(`Priority changed to ${PRIORITY_CONFIG[priority].label}`);
+    });
   }
 
-  async function handleDelete(): Promise<void> {
+  function handleDelete(): void {
     setIsDeleting(true);
-    await deleteTask(task.id);
-    setDeleteDialogOpen(false);
-    setIsDeleting(false);
-    toast.success("Task deleted");
+    startTransition(async () => {
+      await deleteTask(task.id);
+      setDeleteDialogOpen(false);
+      setIsDeleting(false);
+      toast.success("Task deleted");
+    });
   }
 
   return (
@@ -140,7 +147,14 @@ export function TaskRowActions({ task }: TaskRowActionsProps) {
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting
+                </>
+              ) : (
+                "Delete"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
