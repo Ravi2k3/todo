@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { format, formatDistanceToNow, isPast, isToday } from "date-fns";
-import { CalendarIcon, Trash2, X } from "lucide-react";
-import type { Task, TaskStatus, TaskPriority, TaskLabel } from "@/lib/types";
+import { CalendarIcon, Trash2 } from "lucide-react";
+import type { Task, TaskStatus, TaskPriority } from "@/lib/types";
 import {
   TASK_STATUSES,
   TASK_PRIORITIES,
-  TASK_LABELS,
   STATUS_CONFIG,
   PRIORITY_CONFIG,
   LABEL_CONFIG,
@@ -21,15 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -48,55 +40,17 @@ interface TaskExpandedRowProps {
 }
 
 export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
-  const [title, setTitle] = useState<string>(task.title);
-  const [description, setDescription] = useState<string>(
-    task.description ?? "",
-  );
-  const [dueDate, setDueDate] = useState<Date | undefined>(
-    task.dueAt ?? undefined,
-  );
-  const [calendarOpen, setCalendarOpen] = useState<boolean>(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
-  const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  async function handleFieldChange(
-    field: string,
-    value: TaskStatus | TaskPriority | TaskLabel,
-  ): Promise<void> {
-    await updateTask(task.id, { [field]: value });
-    toast.success("Updated");
+  async function handleStatusChange(status: TaskStatus): Promise<void> {
+    await updateTask(task.id, { status });
+    toast.success(`Status → ${STATUS_CONFIG[status].label}`);
   }
 
-  async function handleDueDateChange(
-    date: Date | undefined,
-  ): Promise<void> {
-    setDueDate(date);
-    setCalendarOpen(false);
-    await updateTask(task.id, { dueAt: date ?? null });
-    toast.success(date ? `Due ${format(date, "MMM d")}` : "Due date removed");
-  }
-
-  function handleClearDate(): void {
-    setDueDate(undefined);
-    setCalendarOpen(false);
-    updateTask(task.id, { dueAt: null });
-    toast.success("Due date removed");
-  }
-
-  async function handleSaveText(): Promise<void> {
-    const updates: Record<string, string | null> = {};
-    if (title.trim() !== task.title) {
-      updates.title = title.trim();
-    }
-    if (description.trim() !== (task.description ?? "")) {
-      updates.description = description.trim() || null;
-    }
-    if (Object.keys(updates).length === 0) return;
-    setIsSaving(true);
-    await updateTask(task.id, updates);
-    setIsSaving(false);
-    toast.success("Saved");
+  async function handlePriorityChange(priority: TaskPriority): Promise<void> {
+    await updateTask(task.id, { priority });
+    toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
   }
 
   async function handleDelete(): Promise<void> {
@@ -108,33 +62,44 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
   }
 
   const isDone = task.status === "done" || task.status === "cancelled";
-  const overdue = dueDate && isPast(dueDate) && !isToday(dueDate) && !isDone;
-  const dueToday = dueDate && isToday(dueDate) && !isDone;
+  const overdue =
+    task.dueAt && isPast(task.dueAt) && !isToday(task.dueAt) && !isDone;
+  const dueToday = task.dueAt && isToday(task.dueAt) && !isDone;
 
   return (
     <td colSpan={colSpan} className="p-0">
       <div className="border-t bg-card/50 px-6 py-5">
         <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
-          {/* Left — editable fields */}
-          <div className="space-y-4">
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={handleSaveText}
-              className="text-base font-medium"
-              placeholder="Task title"
-            />
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onBlur={handleSaveText}
-              placeholder="Add a description..."
-              rows={3}
-              className="resize-none"
-            />
+          {/* Left — read-only details */}
+          <div className="space-y-3">
+            <h3 className="text-base font-medium">{task.title}</h3>
+            {task.description && (
+              <p className="text-sm text-muted-foreground">
+                {task.description}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <Badge variant="outline">{LABEL_CONFIG[task.label].label}</Badge>
+              {task.dueAt && (
+                <div
+                  className={cn(
+                    "flex items-center gap-1.5 text-muted-foreground",
+                    overdue && "text-red-500 font-medium",
+                    dueToday && "text-amber-500 font-medium",
+                  )}
+                >
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {format(task.dueAt, "MMM d, yyyy")}
+                </div>
+              )}
+              <span className="text-xs text-muted-foreground">
+                Created{" "}
+                {formatDistanceToNow(task.createdAt, { addSuffix: true })}
+              </span>
+            </div>
           </div>
 
-          {/* Right — metadata controls */}
+          {/* Right — status, priority, delete */}
           <div className="flex min-w-[220px] flex-col gap-3">
             <div>
               <p className="mb-1 text-xs font-medium text-muted-foreground">
@@ -142,13 +107,14 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
               </p>
               <Select
                 value={task.status}
-                onValueChange={(v) =>
-                  handleFieldChange("status", v as TaskStatus)
-                }
+                onValueChange={(v) => handleStatusChange(v as TaskStatus)}
               >
                 <SelectTrigger className="w-full">
                   <div className="flex items-center gap-2">
-                    <TaskStatusIcon status={task.status} className="h-3.5 w-3.5" />
+                    <TaskStatusIcon
+                      status={task.status}
+                      className="h-3.5 w-3.5"
+                    />
                     <SelectValue />
                   </div>
                 </SelectTrigger>
@@ -172,12 +138,15 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
               <Select
                 value={task.priority}
                 onValueChange={(v) =>
-                  handleFieldChange("priority", v as TaskPriority)
+                  handlePriorityChange(v as TaskPriority)
                 }
               >
                 <SelectTrigger className="w-full">
                   <div className="flex items-center gap-2">
-                    <TaskPriorityIcon priority={task.priority} className="h-3.5 w-3.5" />
+                    <TaskPriorityIcon
+                      priority={task.priority}
+                      className="h-3.5 w-3.5"
+                    />
                     <SelectValue />
                   </div>
                 </SelectTrigger>
@@ -185,7 +154,10 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
                   {TASK_PRIORITIES.map((p) => (
                     <SelectItem key={p} value={p}>
                       <div className="flex items-center gap-2">
-                        <TaskPriorityIcon priority={p} className="h-3.5 w-3.5" />
+                        <TaskPriorityIcon
+                          priority={p}
+                          className="h-3.5 w-3.5"
+                        />
                         {PRIORITY_CONFIG[p].label}
                       </div>
                     </SelectItem>
@@ -194,94 +166,15 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
               </Select>
             </div>
 
-            <div>
-              <p className="mb-1 text-xs font-medium text-muted-foreground">
-                Label
-              </p>
-              <Select
-                value={task.label}
-                onValueChange={(v) =>
-                  handleFieldChange("label", v as TaskLabel)
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TASK_LABELS.map((l) => (
-                    <SelectItem key={l} value={l}>
-                      {LABEL_CONFIG[l].label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <p className="mb-1 text-xs font-medium text-muted-foreground">
-                Due date
-              </p>
-              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dueDate && "text-muted-foreground",
-                      overdue && "border-red-500/50 text-red-500",
-                      dueToday && "border-amber-500/50 text-amber-500",
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                    {dueDate ? format(dueDate, "MMM d, yyyy") : "No due date"}
-                    {dueDate && (
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className="ml-auto rounded-sm p-0.5 opacity-50 hover:opacity-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleClearDate();
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.stopPropagation();
-                            handleClearDate();
-                          }
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={handleDueDateChange}
-                    defaultMonth={dueDate ?? new Date()}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="mt-1 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">
-                Created{" "}
-                {formatDistanceToNow(task.createdAt, { addSuffix: true })}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-destructive hover:text-destructive"
-                onClick={() => setDeleteDialogOpen(true)}
-              >
-                <Trash2 className="mr-1 h-3.5 w-3.5" />
-                Delete
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-1 h-7 w-fit text-destructive hover:text-destructive"
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" />
+              Delete
+            </Button>
           </div>
         </div>
       </div>

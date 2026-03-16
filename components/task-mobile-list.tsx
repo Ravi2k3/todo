@@ -3,11 +3,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow, format, isPast, isToday } from "date-fns";
-import type { Task, TaskStatus, TaskPriority, TaskLabel } from "@/lib/types";
+import type { Task, TaskStatus, TaskPriority } from "@/lib/types";
 import {
   TASK_STATUSES,
   TASK_PRIORITIES,
-  TASK_LABELS,
   STATUS_CONFIG,
   PRIORITY_CONFIG,
   LABEL_CONFIG,
@@ -17,7 +16,6 @@ import { TaskPriorityIcon } from "@/components/task-priority-icon";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -34,12 +32,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -47,7 +39,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Trash2, CalendarIcon, X } from "lucide-react";
+import { Trash2, CalendarIcon } from "lucide-react";
 import { updateTask, deleteTask } from "@/lib/actions/tasks";
 import { toast } from "sonner";
 
@@ -205,7 +197,6 @@ export function TaskMobileList({ tasks }: TaskMobileListProps) {
   );
 }
 
-// Extracted as a separate component so state resets properly when switching tasks
 interface MobileTaskDetailProps {
   task: Task;
   onUpdate: (task: Task) => void;
@@ -217,30 +208,8 @@ function MobileTaskDetail({
   onUpdate,
   onDelete,
 }: MobileTaskDetailProps) {
-  const [title, setTitle] = useState<string>(task.title);
-  const [description, setDescription] = useState<string>(
-    task.description ?? "",
-  );
-  const [dueDate, setDueDate] = useState<Date | undefined>(
-    task.dueAt ?? undefined,
-  );
-  const [calendarOpen, setCalendarOpen] = useState<boolean>(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
-
-  async function handleSaveText(): Promise<void> {
-    const updates: Partial<Task> = {};
-    if (title.trim() !== task.title) {
-      updates.title = title.trim();
-    }
-    if (description.trim() !== (task.description ?? "")) {
-      updates.description = description.trim() || null;
-    }
-    if (Object.keys(updates).length === 0) return;
-    await updateTask(task.id, updates);
-    onUpdate({ ...task, ...updates });
-    toast.success("Saved");
-  }
 
   async function handleStatusChange(status: TaskStatus): Promise<void> {
     await updateTask(task.id, { status });
@@ -254,28 +223,6 @@ function MobileTaskDetail({
     toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
   }
 
-  async function handleLabelChange(label: TaskLabel): Promise<void> {
-    await updateTask(task.id, { label });
-    onUpdate({ ...task, label });
-    toast.success(`Label → ${LABEL_CONFIG[label].label}`);
-  }
-
-  async function handleDueDateChange(date: Date | undefined): Promise<void> {
-    setDueDate(date);
-    setCalendarOpen(false);
-    await updateTask(task.id, { dueAt: date ?? null });
-    onUpdate({ ...task, dueAt: date ?? null });
-    toast.success(date ? `Due ${format(date, "MMM d")}` : "Due date removed");
-  }
-
-  function handleClearDate(): void {
-    setDueDate(undefined);
-    setCalendarOpen(false);
-    updateTask(task.id, { dueAt: null });
-    onUpdate({ ...task, dueAt: null });
-    toast.success("Due date removed");
-  }
-
   async function handleDelete(): Promise<void> {
     setIsDeleting(true);
     await deleteTask(task.id);
@@ -285,30 +232,35 @@ function MobileTaskDetail({
   }
 
   const isDone = task.status === "done" || task.status === "cancelled";
-  const overdue = dueDate && isPast(dueDate) && !isToday(dueDate) && !isDone;
-  const dueToday = dueDate && isToday(dueDate) && !isDone;
+  const overdue =
+    task.dueAt && isPast(task.dueAt) && !isToday(task.dueAt) && !isDone;
+  const dueToday = task.dueAt && isToday(task.dueAt) && !isDone;
 
   return (
     <>
       <SheetHeader className="px-0">
-        <SheetTitle className="sr-only">Edit task</SheetTitle>
+        <SheetTitle className="text-left">{task.title}</SheetTitle>
       </SheetHeader>
-      <div className="space-y-5">
-        <Input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onBlur={handleSaveText}
-          className="text-base font-medium"
-          placeholder="Task title"
-        />
-        <Textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          onBlur={handleSaveText}
-          placeholder="Add a description..."
-          rows={3}
-          className="resize-none"
-        />
+      <div className="mt-6 space-y-5">
+        {task.description && (
+          <p className="text-sm text-muted-foreground">{task.description}</p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Badge variant="outline">{LABEL_CONFIG[task.label].label}</Badge>
+          {task.dueAt && (
+            <div
+              className={cn(
+                "flex items-center gap-1.5 text-sm text-muted-foreground",
+                overdue && "text-red-500 font-medium",
+                dueToday && "text-amber-500 font-medium",
+              )}
+            >
+              <CalendarIcon className="h-3.5 w-3.5" />
+              {format(task.dueAt, "MMM d, yyyy")}
+            </div>
+          )}
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -321,7 +273,10 @@ function MobileTaskDetail({
             >
               <SelectTrigger>
                 <div className="flex items-center gap-2">
-                  <TaskStatusIcon status={task.status} className="h-3.5 w-3.5" />
+                  <TaskStatusIcon
+                    status={task.status}
+                    className="h-3.5 w-3.5"
+                  />
                   <SelectValue />
                 </div>
               </SelectTrigger>
@@ -343,11 +298,16 @@ function MobileTaskDetail({
             </p>
             <Select
               value={task.priority}
-              onValueChange={(v) => handlePriorityChange(v as TaskPriority)}
+              onValueChange={(v) =>
+                handlePriorityChange(v as TaskPriority)
+              }
             >
               <SelectTrigger>
                 <div className="flex items-center gap-2">
-                  <TaskPriorityIcon priority={task.priority} className="h-3.5 w-3.5" />
+                  <TaskPriorityIcon
+                    priority={task.priority}
+                    className="h-3.5 w-3.5"
+                  />
                   <SelectValue />
                 </div>
               </SelectTrigger>
@@ -365,84 +325,9 @@ function MobileTaskDetail({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-              Label
-            </p>
-            <Select
-              value={task.label}
-              onValueChange={(v) => handleLabelChange(v as TaskLabel)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TASK_LABELS.map((l) => (
-                  <SelectItem key={l} value={l}>
-                    {LABEL_CONFIG[l].label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-              Due date
-            </p>
-            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dueDate && "text-muted-foreground",
-                    overdue && "border-red-500/50 text-red-500",
-                    dueToday && "border-amber-500/50 text-amber-500",
-                  )}
-                >
-                  <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
-                  {dueDate ? format(dueDate, "MMM d") : "Set date"}
-                  {dueDate && (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="ml-auto rounded-sm p-0.5 opacity-50 hover:opacity-100"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleClearDate();
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.stopPropagation();
-                          handleClearDate();
-                        }
-                      }}
-                    >
-                      <X className="h-3 w-3" />
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dueDate}
-                  onSelect={handleDueDateChange}
-                  defaultMonth={dueDate ?? new Date()}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-
         <div className="text-xs text-muted-foreground">
           Created{" "}
-          {formatDistanceToNow(task.createdAt, {
-            addSuffix: true,
-          })}
+          {formatDistanceToNow(task.createdAt, { addSuffix: true })}
         </div>
 
         <Button
