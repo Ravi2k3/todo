@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ServiceWorkerRegister } from "@/components/sw-register";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -57,7 +56,6 @@ export default function RootLayout({
             <Toaster />
           </TooltipProvider>
         </ThemeProvider>
-        <ServiceWorkerRegister />
       </body>
     </html>
   );
