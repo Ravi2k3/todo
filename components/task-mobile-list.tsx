@@ -252,17 +252,21 @@ function MobileTaskDetail({
   const [, startTransition] = useTransition();
 
   function handleStatusChange(status: TaskStatus): void {
+    onUpdate({ ...task, status });
+    setPendingAction("status");
     startTransition(async () => {
       await updateTask(task.id, { status });
-      onUpdate({ ...task, status });
+      setPendingAction(null);
       toast.success(`Status → ${STATUS_CONFIG[status].label}`);
     });
   }
 
   function handlePriorityChange(priority: TaskPriority): void {
+    onUpdate({ ...task, priority });
+    setPendingAction("priority");
     startTransition(async () => {
       await updateTask(task.id, { priority });
-      onUpdate({ ...task, priority });
+      setPendingAction(null);
       toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
     });
   }
@@ -336,13 +340,18 @@ function MobileTaskDetail({
           <Select
             value={task.status}
             onValueChange={(v) => handleStatusChange(v as TaskStatus)}
+            disabled={pendingAction === "status"}
           >
             <SelectTrigger className="h-11 w-full">
               <div className="flex items-center gap-2">
-                <TaskStatusIcon
-                  status={task.status}
-                  className="h-4 w-4"
-                />
+                {pendingAction === "status" ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <TaskStatusIcon
+                    status={task.status}
+                    className="h-4 w-4"
+                  />
+                )}
                 <SelectValue />
               </div>
             </SelectTrigger>
@@ -365,13 +374,18 @@ function MobileTaskDetail({
           <Select
             value={task.priority}
             onValueChange={(v) => handlePriorityChange(v as TaskPriority)}
+            disabled={pendingAction === "priority"}
           >
             <SelectTrigger className="h-11 w-full">
               <div className="flex items-center gap-2">
-                <TaskPriorityIcon
-                  priority={task.priority}
-                  className="h-4 w-4"
-                />
+                {pendingAction === "priority" ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <TaskPriorityIcon
+                    priority={task.priority}
+                    className="h-4 w-4"
+                  />
+                )}
                 <SelectValue />
               </div>
             </SelectTrigger>
