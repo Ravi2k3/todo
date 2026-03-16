@@ -31,6 +31,7 @@ import { columns } from "@/components/task-table-columns";
 import { TaskTableToolbar } from "@/components/task-table-toolbar";
 import { TaskExpandedRow } from "@/components/task-expanded-row";
 import type { Task } from "@/lib/types";
+import { ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ViewTab = "all" | "active" | "done";
@@ -192,9 +193,23 @@ export function TaskTable({ tasks }: TaskTableProps) {
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center text-muted-foreground"
+                  className="h-48"
                 >
-                  No tasks found.
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <div className="mb-3 rounded-full bg-muted p-3">
+                      <ClipboardList className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-medium">
+                      {tasks.length === 0
+                        ? "No tasks yet"
+                        : "No matches"}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {tasks.length === 0
+                        ? "Click New Task to get started."
+                        : "Try adjusting your search or filters."}
+                    </p>
+                  </div>
                 </TableCell>
               </TableRow>
             )}

@@ -39,7 +39,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Trash2, CalendarIcon } from "lucide-react";
+import { Trash2, CalendarIcon, ClipboardList } from "lucide-react";
 import { updateTask, deleteTask } from "@/lib/actions/tasks";
 import { toast } from "sonner";
 
@@ -53,6 +53,12 @@ export function TaskMobileList({ tasks }: TaskMobileListProps) {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState<string>("");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  async function handleQuickToggle(task: Task): Promise<void> {
+    const newStatus = task.status === "done" ? "todo" : "done";
+    await updateTask(task.id, { status: newStatus });
+    toast.success(newStatus === "done" ? "Done!" : "Reopened");
+  }
 
   const filtered = tasks.filter((task) => {
     if (search && !task.title.toLowerCase().includes(search.toLowerCase())) {
@@ -125,14 +131,23 @@ export function TaskMobileList({ tasks }: TaskMobileListProps) {
 
       <div className="space-y-1">
         {filtered.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            No tasks found.
-          </p>
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="mb-4 rounded-full bg-muted p-4">
+              <ClipboardList className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-base font-medium">
+              {tasks.length === 0 ? "No tasks yet" : "No matches"}
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {tasks.length === 0
+                ? "Tap New Task to create your first one."
+                : "Try a different search or filter."}
+            </p>
+          </div>
         ) : (
           filtered.map((task, index) => (
-            <motion.button
+            <motion.div
               key={task.id}
-              type="button"
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
@@ -140,14 +155,24 @@ export function TaskMobileList({ tasks }: TaskMobileListProps) {
                 duration: 0.15,
                 ease: "easeOut",
               }}
-              onClick={() => setSelectedTask(task)}
               className={cn(
                 "flex w-full items-start gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-accent",
                 task.status === "done" && "opacity-60",
               )}
             >
-              <TaskStatusIcon status={task.status} className="mt-0.5" />
-              <div className="min-w-0 flex-1">
+              {/* Tappable status icon — quick-toggle done/todo */}
+              <button
+                type="button"
+                className="mt-0.5 rounded-sm p-0.5 transition-opacity active:opacity-60"
+                onClick={() => handleQuickToggle(task)}
+              >
+                <TaskStatusIcon status={task.status} />
+              </button>
+              <button
+                type="button"
+                className="min-w-0 flex-1 text-left"
+                onClick={() => setSelectedTask(task)}
+              >
                 <p
                   className={cn(
                     "truncate text-sm font-medium",
@@ -171,8 +196,8 @@ export function TaskMobileList({ tasks }: TaskMobileListProps) {
                   </Badge>
                   {getDueBadge(task)}
                 </div>
-              </div>
-            </motion.button>
+              </button>
+            </motion.div>
           ))
         )}
       </div>
