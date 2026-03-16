@@ -1,7 +1,7 @@
 import { getTasks } from "@/lib/actions/tasks";
 import { Header } from "@/components/header";
 import { TaskTable } from "@/components/task-table";
-import { TaskMobileList } from "@/components/task-mobile-list";
+import { TaskMobileLayout } from "@/components/task-mobile-layout";
 import { PageTransition } from "@/components/page-transition";
 import type { Task } from "@/lib/types";
 
@@ -29,7 +29,7 @@ export default async function TasksPage() {
             <TaskTable tasks={tasks} />
           </div>
           <div className="md:hidden">
-            <TaskMobileList tasks={tasks} />
+            <TaskMobileLayout tasks={tasks} />
           </div>
         </div>
       </div>

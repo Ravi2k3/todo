@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, LogOut, Sun, Moon, Search } from "lucide-react";
+import { Plus, LogOut, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,9 +67,14 @@ export function Header({ tasks }: HeaderProps) {
             <TooltipContent>Sign out</TooltipContent>
           </Tooltip>
 
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
+          {/* Hidden on mobile — bottom nav handles creation there */}
+          <Button
+            size="sm"
+            onClick={() => setCreateOpen(true)}
+            className="hidden md:inline-flex"
+          >
             <Plus className="mr-1 h-4 w-4" />
-            <span className="hidden sm:inline">New Task</span>
+            New Task
           </Button>
         </div>
       </header>
