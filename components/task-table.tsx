@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   flexRender,
@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { columns } from "@/components/task-table-columns";
 import { TaskTableToolbar } from "@/components/task-table-toolbar";
@@ -32,19 +33,49 @@ import { TaskExpandedRow } from "@/components/task-expanded-row";
 import type { Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+type ViewTab = "all" | "active" | "done";
+
 interface TaskTableProps {
   tasks: Task[];
 }
 
 export function TaskTable({ tasks }: TaskTableProps) {
+  const [viewTab, setViewTab] = useState<ViewTab>("all");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState<ExpandedState>({});
 
+  const filteredByView = useMemo(() => {
+    if (viewTab === "active") {
+      return tasks.filter(
+        (t) => t.status === "todo" || t.status === "in_progress",
+      );
+    }
+    if (viewTab === "done") {
+      return tasks.filter(
+        (t) => t.status === "done" || t.status === "cancelled",
+      );
+    }
+    return tasks;
+  }, [tasks, viewTab]);
+
+  const counts = useMemo(
+    () => ({
+      all: tasks.length,
+      active: tasks.filter(
+        (t) => t.status === "todo" || t.status === "in_progress",
+      ).length,
+      done: tasks.filter(
+        (t) => t.status === "done" || t.status === "cancelled",
+      ).length,
+    }),
+    [tasks],
+  );
+
   const table = useReactTable({
-    data: tasks,
+    data: filteredByView,
     columns,
     state: {
       sorting,
@@ -70,6 +101,21 @@ export function TaskTable({ tasks }: TaskTableProps) {
 
   return (
     <div className="space-y-4">
+      <Tabs
+        value={viewTab}
+        onValueChange={(v) => {
+          setViewTab(v as ViewTab);
+          setRowSelection({});
+          setExpanded({});
+        }}
+      >
+        <TabsList>
+          <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
+          <TabsTrigger value="active">Active ({counts.active})</TabsTrigger>
+          <TabsTrigger value="done">Done ({counts.done})</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <TaskTableToolbar table={table} />
 
       <div className="rounded-md border">
