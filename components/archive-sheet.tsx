@@ -42,9 +42,16 @@ export function ArchiveSheet({
   function handleRestore(task: Task): void {
     setRestoringId(task.id);
     startTransition(async () => {
-      await restoreTask(task.id);
-      setRestoringId(null);
-      toast.success(`"${task.title}" restored`);
+      try {
+        await restoreTask(task.id);
+        toast.success(`"${task.title}" restored`);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to restore task";
+        toast.error(message);
+      } finally {
+        setRestoringId(null);
+      }
     });
   }
 
@@ -52,10 +59,17 @@ export function ArchiveSheet({
     if (!deleteTarget) return;
     setIsDeleting(true);
     startTransition(async () => {
-      await deleteTask(deleteTarget.id);
-      setIsDeleting(false);
-      setDeleteTarget(null);
-      toast.success("Task permanently deleted");
+      try {
+        await deleteTask(deleteTarget.id);
+        toast.success("Task permanently deleted");
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to delete task";
+        toast.error(message);
+      } finally {
+        setIsDeleting(false);
+        setDeleteTarget(null);
+      }
     });
   }
 
@@ -75,7 +89,7 @@ export function ArchiveSheet({
             </SheetDescription>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-4">
+          <div className="flex-1 overflow-x-hidden overflow-y-auto px-6">
             {tasks.length > 0 ? (
               <div className="divide-y divide-border">
                 {tasks.map((task) => (
@@ -83,7 +97,7 @@ export function ArchiveSheet({
                     key={task.id}
                     className="flex items-center justify-between gap-3 py-3"
                   >
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 overflow-hidden">
                       <p className="truncate text-sm text-muted-foreground line-through">
                         {task.title}
                       </p>
