@@ -2,7 +2,6 @@ import { getTasks, getArchivedTasks } from "@/lib/actions/tasks";
 import { Header } from "@/components/header";
 import { TaskTable } from "@/components/task-table";
 import { TaskMobileLayout } from "@/components/task-mobile-layout";
-import { ArchivedTasks } from "@/components/archived-tasks";
 import { PageTransition } from "@/components/page-transition";
 import type { Task } from "@/lib/types";
 
@@ -33,21 +32,13 @@ export default async function TasksPage() {
   return (
     <PageTransition>
       <div className="min-h-dvh px-4 py-6 sm:px-6 lg:px-10">
-        <Header tasks={tasks} />
+        <Header tasks={tasks} archivedTasks={archivedTasks} />
         <div className="mt-6">
           <div className="hidden md:block">
             <TaskTable tasks={tasks} />
-            {archivedTasks.length > 0 && (
-              <div className="mt-6">
-                <ArchivedTasks tasks={archivedTasks} />
-              </div>
-            )}
           </div>
           <div className="md:hidden">
-            <TaskMobileLayout
-              tasks={tasks}
-              archivedTasks={archivedTasks}
-            />
+            <TaskMobileLayout tasks={tasks} />
           </div>
         </div>
       </div>

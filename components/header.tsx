@@ -11,14 +11,16 @@ import {
 } from "@/components/ui/tooltip";
 import { TaskCreateDialog } from "@/components/task-create-dialog";
 import { CommandMenu } from "@/components/command-menu";
+import { ArchiveSheet } from "@/components/archive-sheet";
 import { logout } from "@/lib/auth/actions";
 import type { Task } from "@/lib/types";
 
 interface HeaderProps {
   tasks: Task[];
+  archivedTasks: Task[];
 }
 
-export function Header({ tasks }: HeaderProps) {
+export function Header({ tasks, archivedTasks }: HeaderProps) {
   const [createOpen, setCreateOpen] = useState<boolean>(false);
   const { resolvedTheme, setTheme } = useTheme();
 
@@ -49,6 +51,8 @@ export function Header({ tasks }: HeaderProps) {
             </TooltipTrigger>
             <TooltipContent>Toggle theme</TooltipContent>
           </Tooltip>
+
+          <ArchiveSheet tasks={archivedTasks} />
 
           <Tooltip>
             <TooltipTrigger asChild>

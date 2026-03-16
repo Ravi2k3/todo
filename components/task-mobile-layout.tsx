@@ -4,7 +4,6 @@ import { useState } from "react";
 import { ListTodo, SquarePen } from "lucide-react";
 import { TaskMobileList } from "@/components/task-mobile-list";
 import { TaskCreateMobile } from "@/components/task-create-mobile";
-import { ArchivedTasks } from "@/components/archived-tasks";
 import type { Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -12,10 +11,9 @@ type MobileView = "tasks" | "create";
 
 interface TaskMobileLayoutProps {
   tasks: Task[];
-  archivedTasks: Task[];
 }
 
-export function TaskMobileLayout({ tasks, archivedTasks }: TaskMobileLayoutProps) {
+export function TaskMobileLayout({ tasks }: TaskMobileLayoutProps) {
   const [activeView, setActiveView] = useState<MobileView>("tasks");
 
   return (
@@ -23,14 +21,7 @@ export function TaskMobileLayout({ tasks, archivedTasks }: TaskMobileLayoutProps
       {/* Content with bottom padding to clear the nav bar */}
       <div className="pb-20">
         {activeView === "tasks" ? (
-          <>
-            <TaskMobileList tasks={tasks} />
-            {archivedTasks.length > 0 && (
-              <div className="mt-4">
-                <ArchivedTasks tasks={archivedTasks} />
-              </div>
-            )}
-          </>
+          <TaskMobileList tasks={tasks} />
         ) : (
           <TaskCreateMobile onCreated={() => setActiveView("tasks")} />
         )}

@@ -6,7 +6,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   getFacetedRowModel,
   getFacetedUniqueValues,
@@ -26,7 +25,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { columns } from "@/components/task-table-columns";
 import { TaskTableToolbar } from "@/components/task-table-toolbar";
 import { TaskExpandedRow } from "@/components/task-expanded-row";
@@ -93,7 +91,6 @@ export function TaskTable({ tasks }: TaskTableProps) {
     onExpandedChange: setExpanded,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
@@ -119,9 +116,9 @@ export function TaskTable({ tasks }: TaskTableProps) {
 
       <TaskTableToolbar table={table} />
 
-      <div className="rounded-md border">
+      <div className="max-h-[calc(100dvh-280px)] overflow-y-auto rounded-md border">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-background">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
@@ -217,29 +214,9 @@ export function TaskTable({ tasks }: TaskTableProps) {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between px-2">
-        <p className="text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} task(s) total
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      <p className="px-2 text-sm text-muted-foreground">
+        {table.getFilteredRowModel().rows.length} task(s) total
+      </p>
     </div>
   );
 }
