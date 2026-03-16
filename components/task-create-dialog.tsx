@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useRef, useEffect, useState } from "react";
+import { useActionState, useRef, useEffect, useState, useCallback } from "react";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { createTask, type CreateTaskState } from "@/lib/actions/tasks";
+import type { TaskStatus, TaskPriority, TaskLabel } from "@/lib/types";
 import {
   TASK_STATUSES,
   TASK_PRIORITIES,
@@ -47,19 +48,46 @@ export function TaskCreateDialog({
   onOpenChange,
 }: TaskCreateDialogProps) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+
+  // Controlled state so data persists across dialog close/reopen
+  const [title, setTitle] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [status, setStatus] = useState<TaskStatus>("todo");
+  const [priority, setPriority] = useState<TaskPriority>("medium");
+  const [label, setLabel] = useState<TaskLabel>("personal");
+  const [dueDate, setDueDate] = useState<Date | undefined>(new Date());
+  const [calendarOpen, setCalendarOpen] = useState<boolean>(false);
+
   const [state, formAction, isPending] = useActionState<
     CreateTaskState | null,
     FormData
   >(createTask, null);
 
+  const resetForm = useCallback((): void => {
+    setTitle("");
+    setDescription("");
+    setStatus("todo");
+    setPriority("medium");
+    setLabel("personal");
+    setDueDate(new Date());
+  }, []);
+
   useEffect(() => {
     if (state?.success) {
       onOpenChange(false);
-      formRef.current?.reset();
-      setDueDate(undefined);
+      resetForm();
     }
-  }, [state, onOpenChange]);
+  }, [state, onOpenChange, resetForm]);
+
+  function handleDateSelect(date: Date | undefined): void {
+    setDueDate(date);
+    setCalendarOpen(false);
+  }
+
+  function handleClearDate(): void {
+    setDueDate(undefined);
+    setCalendarOpen(false);
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -72,6 +100,8 @@ export function TaskCreateDialog({
             <Input
               name="title"
               placeholder="Task title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               autoFocus
               required
             />
@@ -82,41 +112,55 @@ export function TaskCreateDialog({
           <Textarea
             name="description"
             placeholder="Description (optional)"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             rows={3}
           />
           <div className="grid grid-cols-3 gap-2">
-            <Select name="status" defaultValue="todo">
+            <Select
+              name="status"
+              value={status}
+              onValueChange={(v) => setStatus(v as TaskStatus)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                {TASK_STATUSES.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {STATUS_CONFIG[status].label}
+                {TASK_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {STATUS_CONFIG[s].label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select name="priority" defaultValue="medium">
+            <Select
+              name="priority"
+              value={priority}
+              onValueChange={(v) => setPriority(v as TaskPriority)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
-                {TASK_PRIORITIES.map((priority) => (
-                  <SelectItem key={priority} value={priority}>
-                    {PRIORITY_CONFIG[priority].label}
+                {TASK_PRIORITIES.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {PRIORITY_CONFIG[p].label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select name="label" defaultValue="personal">
+            <Select
+              name="label"
+              value={label}
+              onValueChange={(v) => setLabel(v as TaskLabel)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Label" />
               </SelectTrigger>
               <SelectContent>
-                {TASK_LABELS.map((label) => (
-                  <SelectItem key={label} value={label}>
-                    {LABEL_CONFIG[label].label}
+                {TASK_LABELS.map((l) => (
+                  <SelectItem key={l} value={l}>
+                    {LABEL_CONFIG[l].label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -129,7 +173,7 @@ export function TaskCreateDialog({
             name="dueAt"
             value={dueDate ? dueDate.toISOString() : ""}
           />
-          <Popover>
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
             <PopoverTrigger asChild>
               <Button
                 type="button"
@@ -140,14 +184,34 @@ export function TaskCreateDialog({
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {dueDate ? format(dueDate, "PPP") : "Set due date (optional)"}
+                {dueDate ? format(dueDate, "PPP") : "No due date"}
+                {dueDate && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="ml-auto rounded-sm p-0.5 opacity-50 hover:opacity-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClearDate();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.stopPropagation();
+                        handleClearDate();
+                      }
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </span>
+                )}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={dueDate}
-                onSelect={setDueDate}
+                onSelect={handleDateSelect}
+                defaultMonth={dueDate ?? new Date()}
                 initialFocus
               />
             </PopoverContent>

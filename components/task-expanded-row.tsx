@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format, formatDistanceToNow, isPast, isToday } from "date-fns";
-import { CalendarIcon, Trash2 } from "lucide-react";
+import { CalendarIcon, Trash2, X } from "lucide-react";
 import type { Task, TaskStatus, TaskPriority, TaskLabel } from "@/lib/types";
 import {
   TASK_STATUSES,
@@ -24,7 +24,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Popover,
   PopoverContent,
@@ -56,6 +55,7 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
   const [dueDate, setDueDate] = useState<Date | undefined>(
     task.dueAt ?? undefined,
   );
+  const [calendarOpen, setCalendarOpen] = useState<boolean>(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -72,8 +72,16 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
     date: Date | undefined,
   ): Promise<void> {
     setDueDate(date);
+    setCalendarOpen(false);
     await updateTask(task.id, { dueAt: date ?? null });
     toast.success(date ? `Due ${format(date, "MMM d")}` : "Due date removed");
+  }
+
+  function handleClearDate(): void {
+    setDueDate(undefined);
+    setCalendarOpen(false);
+    updateTask(task.id, { dueAt: null });
+    toast.success("Due date removed");
   }
 
   async function handleSaveText(): Promise<void> {
@@ -100,8 +108,8 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
   }
 
   const isDone = task.status === "done" || task.status === "cancelled";
-  const overdue = task.dueAt && isPast(task.dueAt) && !isToday(task.dueAt) && !isDone;
-  const dueToday = task.dueAt && isToday(task.dueAt) && !isDone;
+  const overdue = dueDate && isPast(dueDate) && !isToday(dueDate) && !isDone;
+  const dueToday = dueDate && isToday(dueDate) && !isDone;
 
   return (
     <td colSpan={colSpan} className="p-0">
@@ -213,7 +221,7 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
               <p className="mb-1 text-xs font-medium text-muted-foreground">
                 Due date
               </p>
-              <Popover>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -226,6 +234,25 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
                   >
                     <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                     {dueDate ? format(dueDate, "MMM d, yyyy") : "No due date"}
+                    {dueDate && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        className="ml-auto rounded-sm p-0.5 opacity-50 hover:opacity-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleClearDate();
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.stopPropagation();
+                            handleClearDate();
+                          }
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </span>
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -233,6 +260,7 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
                     mode="single"
                     selected={dueDate}
                     onSelect={handleDueDateChange}
+                    defaultMonth={dueDate ?? new Date()}
                     initialFocus
                   />
                 </PopoverContent>
