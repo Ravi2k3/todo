@@ -31,13 +31,13 @@ export default async function TasksPage() {
 
   return (
     <PageTransition>
-      <div className="px-4 py-6 sm:px-6 lg:px-10">
+      <div className="flex h-dvh flex-col px-4 py-6 md:block md:h-auto sm:px-6 lg:px-10">
         <Header tasks={tasks} archivedTasks={archivedTasks} />
-        <div className="mt-6">
+        <div className="mt-6 min-h-0 flex-1 md:flex-none">
           <div className="hidden md:block">
             <TaskTable tasks={tasks} />
           </div>
-          <div className="md:hidden">
+          <div className="h-full md:hidden">
             <TaskMobileLayout
               tasks={tasks}
               archivedTasks={archivedTasks}

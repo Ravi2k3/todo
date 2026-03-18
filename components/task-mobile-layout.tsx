@@ -24,8 +24,8 @@ export function TaskMobileLayout({
 
   return (
     <>
-      {/* Content with bottom padding to clear the nav bar */}
-      <div className="pb-20">
+      {/* Scrollable content area — fills remaining viewport, clears bottom nav */}
+      <div className="h-full overflow-y-auto pb-20">
         {activeView === "tasks" ? (
           <TaskMobileList tasks={tasks} />
         ) : (
