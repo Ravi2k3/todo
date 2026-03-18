@@ -98,7 +98,7 @@ export function TaskTable({ tasks }: TaskTableProps) {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-full flex-col gap-4">
       <Tabs
         value={viewTab}
         onValueChange={(v) => {
@@ -116,7 +116,7 @@ export function TaskTable({ tasks }: TaskTableProps) {
 
       <TaskTableToolbar table={table} />
 
-      <div className="max-h-[calc(100dvh-280px)] overflow-y-auto rounded-md border">
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-md border">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-background">
             {table.getHeaderGroups().map((headerGroup) => (
