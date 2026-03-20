@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, LogOut, Sun, Moon, Archive } from "lucide-react";
+import { Plus, LogOut, Sun, Moon, Archive, KeyRound } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { TaskCreateDialog } from "@/components/task-create-dialog";
 import { CommandMenu } from "@/components/command-menu";
 import { ArchiveSheet } from "@/components/archive-sheet";
 import { NotificationToggle } from "@/components/notification-toggle";
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { logout } from "@/lib/auth/actions";
 import type { Task } from "@/lib/types";
 
@@ -25,6 +26,7 @@ interface HeaderProps {
 export function Header({ tasks, archivedTasks }: HeaderProps) {
   const [createOpen, setCreateOpen] = useState<boolean>(false);
   const [archiveOpen, setArchiveOpen] = useState<boolean>(false);
+  const [passwordOpen, setPasswordOpen] = useState<boolean>(false);
   const { resolvedTheme, setTheme } = useTheme();
 
   return (
@@ -82,6 +84,21 @@ export function Header({ tasks, archivedTasks }: HeaderProps) {
 
           <Tooltip>
             <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setPasswordOpen(true)}
+              >
+                <KeyRound className="h-4 w-4" />
+                <span className="sr-only">Change password</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Change password</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
               <form action={logout}>
                 <Button
                   type="submit"
@@ -115,6 +132,10 @@ export function Header({ tasks, archivedTasks }: HeaderProps) {
         tasks={archivedTasks}
         open={archiveOpen}
         onOpenChange={setArchiveOpen}
+      />
+      <ChangePasswordDialog
+        open={passwordOpen}
+        onOpenChange={setPasswordOpen}
       />
     </>
   );

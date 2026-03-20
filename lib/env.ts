@@ -10,9 +10,6 @@ export const env = {
   get databaseUrl(): string {
     return getRequiredEnv("DATABASE_URL");
   },
-  get authPasswordHash(): string {
-    return getRequiredEnv("AUTH_PASSWORD_HASH");
-  },
   get sessionSecret(): string {
     return getRequiredEnv("SESSION_SECRET");
   },

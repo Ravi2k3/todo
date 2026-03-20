@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { tasks } from "@/lib/db/schema";
 import { eq, inArray, desc, and, or, lt, isNull, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { requireUserId } from "@/lib/auth/require-user";
 import {
   TASK_STATUSES,
   TASK_PRIORITIES,
@@ -16,13 +17,14 @@ import {
 const ARCHIVE_AFTER_MS: number = 1 * 24 * 60 * 60 * 1000; // 1 day
 
 /** Soft-archive done/cancelled tasks that haven't been updated in 1 day. */
-async function archiveStaleTasks(): Promise<void> {
+async function archiveStaleTasks(userId: number): Promise<void> {
   const cutoff: Date = new Date(Date.now() - ARCHIVE_AFTER_MS);
   await db
     .update(tasks)
     .set({ archivedAt: new Date() })
     .where(
       and(
+        eq(tasks.userId, userId),
         or(eq(tasks.status, "done"), eq(tasks.status, "cancelled")),
         lt(tasks.updatedAt, cutoff),
         isNull(tasks.archivedAt),
@@ -33,37 +35,41 @@ async function archiveStaleTasks(): Promise<void> {
 export async function getTasks(): Promise<
   (typeof tasks.$inferSelect)[]
 > {
-  await archiveStaleTasks();
+  const userId: number = await requireUserId();
+  await archiveStaleTasks(userId);
   return db
     .select()
     .from(tasks)
-    .where(isNull(tasks.archivedAt))
+    .where(and(eq(tasks.userId, userId), isNull(tasks.archivedAt)))
     .orderBy(desc(tasks.createdAt));
 }
 
 export async function getArchivedTasks(): Promise<
   (typeof tasks.$inferSelect)[]
 > {
+  const userId: number = await requireUserId();
   return db
     .select()
     .from(tasks)
-    .where(isNotNull(tasks.archivedAt))
+    .where(and(eq(tasks.userId, userId), isNotNull(tasks.archivedAt)))
     .orderBy(desc(tasks.archivedAt));
 }
 
 export async function archiveTask(id: number): Promise<void> {
+  const userId: number = await requireUserId();
   await db
     .update(tasks)
     .set({ archivedAt: new Date() })
-    .where(eq(tasks.id, id));
+    .where(and(eq(tasks.id, id), eq(tasks.userId, userId)));
   revalidatePath("/");
 }
 
 export async function restoreTask(id: number): Promise<void> {
+  const userId: number = await requireUserId();
   await db
     .update(tasks)
     .set({ archivedAt: null, status: "todo", updatedAt: new Date() })
-    .where(eq(tasks.id, id));
+    .where(and(eq(tasks.id, id), eq(tasks.userId, userId)));
   revalidatePath("/");
 }
 
@@ -76,6 +82,7 @@ export async function createTask(
   _prevState: CreateTaskState | null,
   formData: FormData,
 ): Promise<CreateTaskState> {
+  const userId: number = await requireUserId();
   const title = formData.get("title");
 
   if (typeof title !== "string" || title.trim().length === 0) {
@@ -89,6 +96,7 @@ export async function createTask(
   const dueAt = formData.get("dueAt");
 
   await db.insert(tasks).values({
+    userId,
     title: title.trim(),
     description:
       typeof description === "string" && description.trim().length > 0
@@ -121,21 +129,24 @@ export async function updateTask(
     dueAt: Date | null;
   }>,
 ): Promise<void> {
+  const userId: number = await requireUserId();
   await db
     .update(tasks)
     .set({ ...data, updatedAt: new Date() })
-    .where(eq(tasks.id, id));
+    .where(and(eq(tasks.id, id), eq(tasks.userId, userId)));
 
   revalidatePath("/");
 }
 
 export async function deleteTask(id: number): Promise<void> {
-  await db.delete(tasks).where(eq(tasks.id, id));
+  const userId: number = await requireUserId();
+  await db.delete(tasks).where(and(eq(tasks.id, id), eq(tasks.userId, userId)));
   revalidatePath("/");
 }
 
 export async function deleteTasks(ids: number[]): Promise<void> {
+  const userId: number = await requireUserId();
   if (ids.length === 0) return;
-  await db.delete(tasks).where(inArray(tasks.id, ids));
+  await db.delete(tasks).where(and(inArray(tasks.id, ids), eq(tasks.userId, userId)));
   revalidatePath("/");
 }

@@ -1,7 +1,26 @@
-import { pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  serial,
+  integer,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
   title: text("title").notNull(),
   description: text("description"),
   status: text("status", {
@@ -33,6 +52,9 @@ export const pushSubscriptions = pgTable(
   "push_subscriptions",
   {
     id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
     endpoint: text("endpoint").notNull(),
     p256dh: text("p256dh").notNull(),
     auth: text("auth").notNull(),
@@ -40,5 +62,7 @@ export const pushSubscriptions = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [uniqueIndex("push_subscriptions_endpoint_idx").on(table.endpoint)],
+  (table) => [
+    uniqueIndex("push_subscriptions_endpoint_idx").on(table.endpoint),
+  ],
 );

@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { env } from "@/lib/env";
 
 export interface SessionData {
-  isLoggedIn: boolean;
+  userId: number;
 }
 
 const SESSION_COOKIE_NAME = "todo-session";

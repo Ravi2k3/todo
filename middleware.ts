@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     cookieName: SESSION_COOKIE_NAME,
   });
 
-  if (!session.isLoggedIn) {
+  if (!session.userId) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

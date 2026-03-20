@@ -27,11 +27,18 @@ export default function LoginPage() {
 
         <form action={formAction} className="space-y-4">
           <Input
+            name="username"
+            type="text"
+            placeholder="Username"
+            autoComplete="username"
+            autoFocus
+            required
+          />
+          <Input
             name="password"
             type="password"
             placeholder="Password"
             autoComplete="current-password"
-            autoFocus
             required
           />
           {state?.error && (

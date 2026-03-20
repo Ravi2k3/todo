@@ -2,8 +2,10 @@
 
 import { compare } from "bcryptjs";
 import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
 import { getSession } from "./session";
-import { env } from "@/lib/env";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
 
 export interface LoginState {
   error: string;
@@ -13,20 +15,35 @@ export async function login(
   _prevState: LoginState | null,
   formData: FormData,
 ): Promise<LoginState | null> {
+  const username = formData.get("username");
   const password = formData.get("password");
+
+  if (typeof username !== "string" || username.trim().length === 0) {
+    return { error: "Username is required" };
+  }
 
   if (typeof password !== "string" || password.length === 0) {
     return { error: "Password is required" };
   }
 
-  const isValid = await compare(password, env.authPasswordHash);
+  const [user] = await db
+    .select({ id: users.id, passwordHash: users.passwordHash })
+    .from(users)
+    .where(eq(users.username, username.trim().toLowerCase()))
+    .limit(1);
+
+  if (!user) {
+    return { error: "Invalid username or password" };
+  }
+
+  const isValid: boolean = await compare(password, user.passwordHash);
 
   if (!isValid) {
-    return { error: "Invalid password" };
+    return { error: "Invalid username or password" };
   }
 
   const session = await getSession();
-  session.isLoggedIn = true;
+  session.userId = user.id;
   await session.save();
 
   redirect("/");
