@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { requireUserId } from "./require-user";
+import { getSession } from "./session";
 
 const BCRYPT_ROUNDS = 12;
 
@@ -55,8 +56,12 @@ export async function changePassword(
 
   await db
     .update(users)
-    .set({ passwordHash: newHash })
+    .set({ passwordHash: newHash, mustChangePassword: false })
     .where(eq(users.id, userId));
+
+  const session = await getSession();
+  session.mustChangePassword = false;
+  await session.save();
 
   return { success: true };
 }

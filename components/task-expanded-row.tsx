@@ -47,37 +47,65 @@ export function TaskExpandedRow({ task, colSpan }: TaskExpandedRowProps) {
   function handleStatusChange(status: TaskStatus): void {
     setPendingAction("status");
     startTransition(async () => {
-      await updateTask(task.id, { status });
-      setPendingAction(null);
-      toast.success(`Status → ${STATUS_CONFIG[status].label}`);
+      try {
+        await updateTask(task.id, { status });
+        toast.success(`Status → ${STATUS_CONFIG[status].label}`);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to update status";
+        toast.error(message);
+      } finally {
+        setPendingAction(null);
+      }
     });
   }
 
   function handlePriorityChange(priority: TaskPriority): void {
     setPendingAction("priority");
     startTransition(async () => {
-      await updateTask(task.id, { priority });
-      setPendingAction(null);
-      toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
+      try {
+        await updateTask(task.id, { priority });
+        toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to update priority";
+        toast.error(message);
+      } finally {
+        setPendingAction(null);
+      }
     });
   }
 
   function handleArchive(): void {
     setPendingAction("archive");
     startTransition(async () => {
-      await archiveTask(task.id);
-      setPendingAction(null);
-      toast.success("Task archived");
+      try {
+        await archiveTask(task.id);
+        toast.success("Task archived");
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to archive task";
+        toast.error(message);
+      } finally {
+        setPendingAction(null);
+      }
     });
   }
 
   function handleDelete(): void {
     setPendingAction("delete");
     startTransition(async () => {
-      await deleteTask(task.id);
-      setDeleteDialogOpen(false);
-      setPendingAction(null);
-      toast.success("Task deleted");
+      try {
+        await deleteTask(task.id);
+        setDeleteDialogOpen(false);
+        toast.success("Task deleted");
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to delete task";
+        toast.error(message);
+      } finally {
+        setPendingAction(null);
+      }
     });
   }
 

@@ -57,8 +57,14 @@ export function CommandMenu({ tasks, onCreateNew }: CommandMenuProps) {
     (taskId: number, status: TaskStatus): void => {
       setOpen(false);
       startTransition(async () => {
-        await updateTask(taskId, { status });
-        toast.success(`Status → ${STATUS_CONFIG[status].label}`);
+        try {
+          await updateTask(taskId, { status });
+          toast.success(`Status → ${STATUS_CONFIG[status].label}`);
+        } catch (err: unknown) {
+          const message =
+            err instanceof Error ? err.message : "Failed to update status";
+          toast.error(message);
+        }
       });
     },
     [startTransition],
@@ -68,8 +74,14 @@ export function CommandMenu({ tasks, onCreateNew }: CommandMenuProps) {
     (taskId: number, priority: TaskPriority): void => {
       setOpen(false);
       startTransition(async () => {
-        await updateTask(taskId, { priority });
-        toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
+        try {
+          await updateTask(taskId, { priority });
+          toast.success(`Priority → ${PRIORITY_CONFIG[priority].label}`);
+        } catch (err: unknown) {
+          const message =
+            err instanceof Error ? err.message : "Failed to update priority";
+          toast.error(message);
+        }
       });
     },
     [startTransition],

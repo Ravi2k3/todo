@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getIronSession } from "iron-session";
 import type { SessionData } from "@/lib/auth/session";
-
-const SESSION_COOKIE_NAME = "todo-session";
+import { sessionOptions } from "@/lib/auth/session";
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
@@ -13,13 +12,15 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 
   const response = NextResponse.next();
-  const session = await getIronSession<SessionData>(request, response, {
-    password: process.env.SESSION_SECRET!,
-    cookieName: SESSION_COOKIE_NAME,
-  });
+  const session = await getIronSession<SessionData>(request, response, sessionOptions);
 
   if (!session.userId) {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Force password change: only allow the change-password page and logout
+  if (session.mustChangePassword && pathname !== "/change-password") {
+    return NextResponse.redirect(new URL("/change-password", request.url));
   }
 
   return response;

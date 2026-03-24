@@ -95,6 +95,15 @@ export async function createTask(
   const label = formData.get("label");
   const dueAt = formData.get("dueAt");
 
+  let parsedDueAt: Date | null = null;
+  if (typeof dueAt === "string" && dueAt.length > 0) {
+    const candidate = new Date(dueAt);
+    if (isNaN(candidate.getTime())) {
+      return { error: "Invalid due date" };
+    }
+    parsedDueAt = candidate;
+  }
+
   await db.insert(tasks).values({
     userId,
     title: title.trim(),
@@ -111,7 +120,7 @@ export async function createTask(
     label: TASK_LABELS.includes(label as TaskLabel)
       ? (label as TaskLabel)
       : "personal",
-    dueAt: typeof dueAt === "string" && dueAt.length > 0 ? new Date(dueAt) : null,
+    dueAt: parsedDueAt,
   });
 
   revalidatePath("/");

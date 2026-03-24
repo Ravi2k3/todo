@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "db:push": "drizzle-kit push",
     "db:migrate-multiuser": "npx tsx scripts/migrate-multiuser.ts",
+    "db:add-user": "npx tsx scripts/add-user.ts",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio"
   },

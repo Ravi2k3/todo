@@ -39,25 +39,44 @@ export function TaskRowActions({ task }: TaskRowActionsProps) {
 
   function handleStatusChange(status: TaskStatus): void {
     startTransition(async () => {
-      await updateTask(task.id, { status });
-      toast.success(`Status changed to ${STATUS_CONFIG[status].label}`);
+      try {
+        await updateTask(task.id, { status });
+        toast.success(`Status changed to ${STATUS_CONFIG[status].label}`);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to update status";
+        toast.error(message);
+      }
     });
   }
 
   function handlePriorityChange(priority: TaskPriority): void {
     startTransition(async () => {
-      await updateTask(task.id, { priority });
-      toast.success(`Priority changed to ${PRIORITY_CONFIG[priority].label}`);
+      try {
+        await updateTask(task.id, { priority });
+        toast.success(`Priority changed to ${PRIORITY_CONFIG[priority].label}`);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to update priority";
+        toast.error(message);
+      }
     });
   }
 
   function handleDelete(): void {
     setIsDeleting(true);
     startTransition(async () => {
-      await deleteTask(task.id);
-      setDeleteDialogOpen(false);
-      setIsDeleting(false);
-      toast.success("Task deleted");
+      try {
+        await deleteTask(task.id);
+        setDeleteDialogOpen(false);
+        toast.success("Task deleted");
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to delete task";
+        toast.error(message);
+      } finally {
+        setIsDeleting(false);
+      }
     });
   }
 

@@ -3,7 +3,7 @@
 import { webpush } from "@/lib/push";
 import { db } from "@/lib/db";
 import { pushSubscriptions } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { requireUserId } from "@/lib/auth/require-user";
 
 interface PushKeys {
@@ -48,7 +48,12 @@ export async function unsubscribePush(
 
   await db
     .delete(pushSubscriptions)
-    .where(eq(pushSubscriptions.endpoint, endpoint));
+    .where(
+      and(
+        eq(pushSubscriptions.endpoint, endpoint),
+        eq(pushSubscriptions.userId, userId),
+      ),
+    );
 
   return { success: true };
 }

@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 
 export interface SessionData {
   userId: number;
+  mustChangePassword?: boolean;
 }
 
 const SESSION_COOKIE_NAME = "todo-session";
